@@ -72,15 +72,15 @@ jobs:
           role-to-assume: ${{ secrets.aws-role-arn }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      # - name: Terraform Validation and Formatting Checks
-      #   id: validate
-      #   uses: subhamay-bhattacharyya-gha/tf-validate-action@main
-      #   with:
-      #     terraform-dir: ${{ inputs.terraform-dir }}              
-      #     s3-bucket: ${{ vars.TF_STATE_BUCKET_NAME }}
-      #     s3-region: ${{ vars.AWS_REGION }}
-      #     ci-pipeline: "true"
-      #     soft-fail: "true"                                  
+      - name: Terraform Validation and Formatting Checks
+        id: validate
+        uses: subhamay-bhattacharyya-gha/tf-validate-action@main
+        with:
+          terraform-dir: ${{ inputs.terraform-dir }}              
+          s3-bucket: ${{ vars.TF_STATE_BUCKET_NAME }}
+          s3-region: ${{ vars.AWS_REGION }}
+          ci-pipeline: "true"
+          soft-fail: "true"                                  
 
   terraform-lint:
     name: 📋 Terraform Lint
@@ -88,15 +88,12 @@ jobs:
     needs: [execution-path]
     if: ${{ fromJSON(needs.execution-path.outputs.execution-path).IaC == true }}
     steps:
-      # - name: Run TFLint
-      #   uses: subhamay-bhattacharyya-gha/tf-lint-action@main
-      #   with:
-      #     tflint-ver: "v0.52.0"
-      #     use-cache: "true"
-      #     tflint-format: "compact"
       - name: Run TFLint
-        run: |
-          echo "Running TFLint..."
+        uses: subhamay-bhattacharyya-gha/tf-lint-action@main
+        with:
+          tflint-ver: ${{ vars.TF_LINT_VER }}
+          use-cache: "true"
+          tflint-format: "compact"
           
   checkov-scan:
     if: ${{ fromJSON(needs.execution-path.outputs.execution-path).IaC == true }}
@@ -112,23 +109,23 @@ jobs:
           role-to-assume: ${{ secrets.aws-role-arn }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      # - name: Checkov Scan
-      #   uses: subhamay-bhattacharyya-gha/checkov-scan-action@main
-      #   id: checkov-scan
-      #   with:
-      #     iac-dir: ${{ inputs.terraform-dir }}
-      #     iac-framework: terraform
-      #     soft-fail: true
+      - name: Checkov Scan
+        uses: subhamay-bhattacharyya-gha/checkov-scan-action@main
+        id: checkov-scan
+        with:
+          iac-dir: ${{ inputs.terraform-dir }}
+          iac-framework: terraform
+          soft-fail: true
 
-      # - name: Confirm SARIF file type
-      #   shell: bash
-      #   run: |
-      #     ls -la "${{ github.workspace }}"
-      #     file "${{ github.workspace }}/results.sarif"
+      - name: Confirm SARIF file type
+        shell: bash
+        run: |
+          ls -la "${{ github.workspace }}"
+          file "${{ github.workspace }}/results.sarif"
 
-      # - name: "📋 Summarize and Print Checkov Scan Report with Snippets"
-      #   id: summarize-report
-      #   uses: subhamay-bhattacharyya-gha/checkov-report-action@main
+      - name: "📋 Summarize and Print Checkov Scan Report with Snippets"
+        id: summarize-report
+        uses: subhamay-bhattacharyya-gha/checkov-report-action@main
 
   build-lambda:
     name: 🛠️ ⛔ Lambda Package
@@ -187,9 +184,9 @@ jobs:
     steps:
       - name: Call Yor Reusable Action
         run: echo "Applying Git metadata tags using YOR..."
-        # uses: subhamay-bhattacharyya-gha/tf-yor-action@main
-        # with:
-        #   terraform-dir: ${{ inputs.terraform-dir }}
+        uses: subhamay-bhattacharyya-gha/tf-yor-action@main
+        with:
+          terraform-dir: ${{ inputs.terraform-dir }}
          
   terraform-plan:
     if: ${{ fromJSON(needs.execution-path.outputs.execution-path).IaC == true }}
@@ -204,15 +201,15 @@ jobs:
           role-to-assume: ${{ secrets.aws-role-arn }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      # - name: Terraform Plan
-      #   id: plan
-      #   uses: subhamay-bhattacharyya-gha/tf-plan-action@main
-      #   with:
-      #     terraform-dir: ${{ inputs.terraform-dir }} 
-      #     tf-vars-file: ${{ inputs.tf-vars-file }}
-      #     s3-bucket: ${{ vars.TF_STATE_BUCKET_NAME }}
-      #     s3-region: ${{ vars.AWS_REGION }}
-      #     ci-pipeline: ${{ inputs.ci-pipeline }}
+      - name: Terraform Plan
+        id: plan
+        uses: subhamay-bhattacharyya-gha/tf-plan-action@main
+        with:
+          terraform-dir: ${{ inputs.terraform-dir }} 
+          tf-vars-file: ${{ inputs.tf-vars-file }}
+          s3-bucket: ${{ vars.TF_STATE_BUCKET_NAME }}
+          s3-region: ${{ vars.AWS_REGION }}
+          ci-pipeline: ${{ inputs.ci-pipeline }}
 
   infra-cost:
     if: ${{ fromJSON(needs.execution-path.outputs.execution-path).IaC == true }}
@@ -227,17 +224,17 @@ jobs:
           role-to-assume: ${{ secrets.aws-role-arn }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      # - name: Infra Cost
-      #   id: infra-cost
-      #   uses: subhamay-bhattacharyya-gha/infracost-action@main
-      #   with:
-      #     terraform-dir: ${{ inputs.terraform-dir }} 
-      #     ci-pipeline: ${{ inputs.ci-pipeline }}
-      #     s3-bucket: ${{ vars.TF_STATE_BUCKET_NAME }}
-      #     s3-region: ${{ vars.AWS_REGION }}
-      #     infracost-api-key: ${{ secrets.infracost-api-key }}
-      #     gist-id: ${{ secrets.infracost-gist-id }}
-      #     environment: ${{ inputs.environment }}
+      - name: Infra Cost
+        id: infra-cost
+        uses: subhamay-bhattacharyya-gha/infracost-action@main
+        with:
+          terraform-dir: ${{ inputs.terraform-dir }} 
+          ci-pipeline: ${{ inputs.ci-pipeline }}
+          s3-bucket: ${{ vars.TF_STATE_BUCKET_NAME }}
+          s3-region: ${{ vars.AWS_REGION }}
+          infracost-api-key: ${{ secrets.infracost-api-key }}
+          gist-id: ${{ secrets.infracost-gist-id }}
+          environment: ${{ inputs.environment }}
 
   terraform-apply:
     if: ${{ fromJSON(needs.execution-path.outputs.execution-path).IaC == true }}
@@ -252,14 +249,14 @@ jobs:
           role-to-assume: ${{ secrets.aws-role-arn }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      # - name: Terraform Apply
-      #   uses: subhamay-bhattacharyya-gha/tf-apply-action@main
-      #   id: apply
-      #   with:
-      #     terraform-dir: ${{ inputs.terraform-dir }}
-      #     s3-bucket: ${{ vars.TF_STATE_BUCKET_NAME }}
-      #     s3-region: ${{ vars.AWS_REGION }}
-      #     ci-pipeline: ${{ inputs.ci-pipeline }}
+      - name: Terraform Apply
+        uses: subhamay-bhattacharyya-gha/tf-apply-action@main
+        id: apply
+        with:
+          terraform-dir: ${{ inputs.terraform-dir }}
+          s3-bucket: ${{ vars.TF_STATE_BUCKET_NAME }}
+          s3-region: ${{ vars.AWS_REGION }}
+          ci-pipeline: ${{ inputs.ci-pipeline }}
 
   terraform-destroy:
     if: ${{ fromJSON(needs.execution-path.outputs.execution-path).IaC == true }}
@@ -275,14 +272,14 @@ jobs:
           role-to-assume: ${{ secrets.aws-role-arn }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      # - name: Terraform Destroy
-      #   uses: subhamay-bhattacharyya-gha/tf-destroy-action@main
-      #   id: destroy
-      #   with:
-      #     terraform-dir: ${{ inputs.terraform-dir }}
-      #     s3-bucket: ${{ vars.TF_STATE_BUCKET_NAME }}
-      #     s3-region: ${{ vars.AWS_REGION }}
-      #     ci-pipeline: ${{ inputs.ci-pipeline }}
+      - name: Terraform Destroy
+        uses: subhamay-bhattacharyya-gha/tf-destroy-action@main
+        id: destroy
+        with:
+          terraform-dir: ${{ inputs.terraform-dir }}
+          s3-bucket: ${{ vars.TF_STATE_BUCKET_NAME }}
+          s3-region: ${{ vars.AWS_REGION }}
+          ci-pipeline: ${{ inputs.ci-pipeline }}
 
   create-release:
     name: 🚀 Create Release
@@ -308,13 +305,13 @@ jobs:
     steps:
       - name: Create Release
         run: echo "Creating release..."
-        # uses: subhamay-bhattacharyya-gha/create-release-action@main
-        # with:
-        #   github-token: ${{ secrets.GITHUB_TOKEN }}
-        #   tag-name: ${{ github.ref_name }}
-        #   release-name: Release ${{ github.ref_name }}
-        #   release-body: |
-        #     This is an automated release created by the CI pipeline.
-        #     It includes the latest changes from the main branch.
-        #   draft: false
-        #   prerelease: false
+        uses: subhamay-bhattacharyya-gha/create-release-action@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          tag-name: ${{ github.ref_name }}
+          release-name: Release ${{ github.ref_name }}
+          release-body: |
+            This is an automated release created by the CI pipeline.
+            It includes the latest changes from the main branch.
+          draft: false
+          prerelease: false
