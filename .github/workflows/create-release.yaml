@@ -157,7 +157,8 @@ jobs:
     if: ${{ fromJSON(needs.execution-path.outputs.execution-path).glue == true }}
     runs-on: ubuntu-latest
     needs: [execution-path]
-
+    
+    steps:
       - name: Package Glue Script
         run: echo "No changes found in Glue script, skipping build..."
 
