@@ -304,14 +304,13 @@ jobs:
     - terraform-destroy
     steps:
       - name: Create Release
-        run: echo "Creating release..."
         uses: subhamay-bhattacharyya-gha/create-release-action@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          tag-name: ${{ github.ref_name }}
-          release-name: Release ${{ github.ref_name }}
-          release-body: |
-            This is an automated release created by the CI pipeline.
-            It includes the latest changes from the main branch.
-          draft: false
-          prerelease: false
+          # tag-name: ${{ github.ref_name }}
+          # release-name: Release ${{ github.ref_name }}
+          # release-body: |
+          #   This is an automated release created by the CI pipeline.
+          #   It includes the latest changes from the main branch.
+          # draft: false
+          # prerelease: false
