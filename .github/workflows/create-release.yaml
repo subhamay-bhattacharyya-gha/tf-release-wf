@@ -40,6 +40,7 @@ on:
 permissions:
   id-token: write
   contents: write
+  actions: read
 
 jobs:
 
@@ -49,10 +50,66 @@ jobs:
     outputs:
       execution-path: ${{ steps.set-path.outputs.execution-path }}
     steps:
-      - name: Set Execution Path
-        id: set-path
+      - name: Get Workflow Runs
+        id: get_runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runs = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch: context.payload.pull_request.head.ref,
+              event: "push"
+            });
+
+            const run = runs.data.workflow_runs.find(r => r.head_sha === context.payload.pull_request.head.sha);
+            if (!run) {
+              core.setFailed("No matching workflow run found for the feature branch.");
+              return;
+            }
+
+            core.setOutput("run_id", run.id);
+
+      - name: List Artifacts
+        id: list_artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: ${{ steps.get_runs.outputs.run_id }},
+            });
+
+            const artifact = artifacts.data.artifacts.find(a => a.name === "execution-path-data");
+            if (!artifact) {
+              core.setFailed("Artifact 'execution-path-data' not found.");
+              return;
+            }
+
+            core.setOutput("artifact_id", artifact.id);
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          # You cannot directly download across runs. Use the REST API:
+          name: execution-path-data
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "execution-path={\"IaC\": true, \"lambda\": true, \"lambda-layer\": false, \"glue\": false, \"state-machine\": false}" >> $GITHUB_OUTPUT
+          curl -L \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${{ steps.list_artifacts.outputs.artifact_id }}/zip \
+            -o artifact.zip
+
+          unzip artifact.zip -d ./execution-path-data
+
+          echo "execution-path=`cat ./execution-path-data/execution-path.json`" >> $GITHUB_OUTPUT
+
+      # - name: Set Execution Path
+      #   id: set-path
+      #   run: |
+      #     echo "execution-path={\"IaC\": true, \"lambda\": true, \"lambda-layer\": false, \"glue\": false, \"state-machine\": false}" >> $GITHUB_OUTPUT
 
   terraform-validate:
     if: ${{ fromJSON(needs.execution-path.outputs.execution-path).IaC == true }}
@@ -274,19 +331,35 @@ jobs:
   create-release:
     name: 🚀 Create Release
     runs-on: ubuntu-latest
-    if: ${{ needs.build-lambda.result == 'success' || needs.build-lambda-layer.result == 'success' || needs.build-glue.result == 'success' || needs.build-state-machine.result == 'success' || needs.terraform-destroy.result == 'success' }}
     needs:
-      - build-lambda
-      - build-lambda-layer
-      - build-glue
-      - build-state-machine
-      - terraform-validate
-      - terraform-lint
-      - checkov-scan
-      - infra-cost
-      - terraform-plan
-      - terraform-apply
-      - terraform-destroy
+    - terraform-lint
+    - terraform-validate
+    - terraform-plan
+    - terraform-apply
+    - terraform-destroy
+    - infra-cost
+    - yor-resource-tagging
+    - checkov-scan
+    - build-lambda
+    - build-lambda-layer
+    - build-glue
+    - build-state-machine
+    if: >-
+      ${{
+        always() &&
+        needs.terraform-lint.result != 'failure' &&
+        needs.terraform-validate.result != 'failure' &&
+        needs.terraform-plan.result != 'failure' &&
+        needs.terraform-apply.result != 'failure' &&
+        needs.terraform-destroy.result != 'failure' &&
+        needs.infra-cost.result != 'failure' &&
+        needs.yor-resource-tagging.result != 'failure' &&
+        needs.checkov-scan.result != 'failure' &&
+        needs.build-lambda.result != 'failure' &&
+        needs.build-lambda-layer.result != 'failure' &&
+        needs.build-glue.result != 'failure' &&
+        needs.build-state-machine.result != 'failure'
+      }}
     steps:
       - name: Create Release
         uses: subhamay-bhattacharyya-gha/create-release-action@feature/GHA-0002-initial-release
