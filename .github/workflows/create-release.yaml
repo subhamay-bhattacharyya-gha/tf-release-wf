@@ -183,7 +183,6 @@ jobs:
     needs: [ terraform-lint, terraform-validate, checkov-scan ]
     steps:
       - name: Call Yor Reusable Action
-        run: echo "Applying Git metadata tags using YOR..."
         uses: subhamay-bhattacharyya-gha/tf-yor-action@main
         with:
           terraform-dir: ${{ inputs.terraform-dir }}
