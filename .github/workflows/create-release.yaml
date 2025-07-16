@@ -88,11 +88,13 @@ jobs:
             }
 
             core.setOutput("artifact_id", artifact.id);
+
       - name: Download Artifact
         uses: actions/download-artifact@v4
         with:
-          # You cannot directly download across runs. Use the REST API:
           name: execution-path-data
+
+      - name: Unzip and Read Execution Path
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -105,6 +107,7 @@ jobs:
           unzip artifact.zip -d ./execution-path-data
 
           echo "execution-path=`cat ./execution-path-data/execution-path.json`" >> $GITHUB_OUTPUT
+
 
       # - name: Set Execution Path
       #   id: set-path
