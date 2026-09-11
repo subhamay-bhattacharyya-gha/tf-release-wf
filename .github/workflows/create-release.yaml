@@ -90,7 +90,7 @@ jobs:
             core.setOutput("artifact_id", artifact.id);
 
       - name: Download Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: execution-path-data
 
